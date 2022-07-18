@@ -1,0 +1,45 @@
+server {
+    listen 0.0.0.0:80;
+
+    server_name _;
+
+    root /var/www;
+
+    index index.html;
+
+    default_type "text/html; charset=utf-8";
+
+    location / {
+        proxy_buffering off;
+        proxy_read_timeout 120s;
+        proxy_pass_request_headers on;
+	# Do not change : used to ensure configs arent sent in GZIP and we can parse them
+        more_clear_input_headers Accept-Encoding;
+
+	# Repace the following IP:PORT by your Druid/Imply Pivot IP:PORT
+        proxy_pass http://127.0.0.1:9095/;
+
+        rewrite_by_lua_block {
+                druid_polymorph.lookupRequestReplace()
+        }
+
+        # Reset the response's content_length, so that Lua can generate a body with a different length. 
+        header_filter_by_lua_block {
+            ngx.header.content_length = nil
+        }
+
+        body_filter_by_lua_block {
+                druid_polymorph.lookupResponseReplace()
+        }
+    }
+
+    location /checkLookup {
+	allow 127.0.0.1;
+	deny all;
+
+	content_by_lua_block {
+		druid_polymorph.returnLookupEntry(ngx.var.arg_entity, ngx.var.arg_key)
+	}
+    }
+
+}

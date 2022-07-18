@@ -1,0 +1,4 @@
+# add dictionnaries here to activate lookup
+# example:
+#  lua_shared_dict shop_id 100m;
+# Where 100m is the size of the dict
